@@ -37,24 +37,21 @@ openai_api_key = json.loads(response.text)['data']['data']['api_key']
 
 openai.api_key = openai_api_key
 
-conversation = []
+# Initialize the conversation with a system message
+conversation = [
+    {"role": "system", "content": "You are a DevOps assistant specialized in Debian Linux environments. Help the user with command line, sysadmin, and DevOps tasks."}
+]
 
 try:
     while True:
         # Get user input
         user_input = input("You: ")
-        conversation.append(f"You: {user_input}")
+        conversation.append({"role": "user", "content": user_input})
 
-        # Create a prompt using the conversation history
-        prompt = "\n".join(conversation)
-
-        # Make API call to OpenAI's GPT engine
-        response = openai.ChatCompletion.create(  # Changed this line
-            model="gpt-3.5-turbo",  # Model specification
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_input},
-            ]
+        # Make API call to OpenAI's GPT engine using the conversation history
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=conversation
         )
 
         # Extract and display the model's response
@@ -62,7 +59,7 @@ try:
         print(f"ChatGPT: {model_response}")
 
         # Add the model's response to the conversation history
-        conversation.append(f"ChatGPT: {model_response}")
+        conversation.append({"role": "assistant", "content": model_response})
 
 except KeyboardInterrupt:
     print("\nConversation ended by user.")
