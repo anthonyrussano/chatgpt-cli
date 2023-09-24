@@ -61,5 +61,13 @@ try:
         # Add the model's response to the conversation history
         conversation.append({"role": "assistant", "content": model_response})
 
+        # Prompt user to save the response to a text file
+        save_response = input("Would you like to save this response to a text file? (yes/no): ").strip().lower()
+        if save_response == "yes":
+            file_name = input("Enter the filename (including path) to save the response: ").strip()
+            with open(file_name, "w") as file:
+                file.write(model_response)
+            print(f"Response saved to {file_name}")
+
 except KeyboardInterrupt:
     print("\nConversation ended by user.")
