@@ -35,8 +35,21 @@ def ensure_directory_exists(directory):
 
 def chat_with_openai():
     conversation = [
-        {"role": "system", "content": "Please provide all responses in the form of a devops tutorial and format them as a markdown article. Start each response with a unique filename suggestion followed by a colon (e.g., 'filename_here.md: Actual response here')."}
+        {
+            "role": "system",
+            "content": (
+                "I'm looking for comprehensive DevOps tutorials in markdown format. "
+                "Each response should be structured as follows:\n\n"
+                "- Title\n"
+                "- Introduction\n"
+                "- Steps or Sections\n"
+                "- Conclusion\n\n"
+                "Please start each response with a unique filename suggestion followed by a colon "
+                "(e.g., 'filename_here.md: # Title\n\n...'). Make sure the content is clear, concise, and informative."
+            )
+        }
     ]
+
 
     ensure_directory_exists("responses")  # Ensure 'responses' directory exists
 
