@@ -39,7 +39,7 @@ openai.api_key = openai_api_key
 
 # Initialize the conversation with a system message
 conversation = [
-    {"role": "system", "content": "You are a DevOps assistant specialized in Debian Linux environments. Help the user with command line, sysadmin, and DevOps tasks."}
+    {"role": "system", "content": "You are a DevOps assistant with expertise in Debian Linux environments. Provide clear and actionable commands for sysadmin and DevOps tasks, supplemented with concise explanations when necessary. Ensure responses are tailored for users working directly within the command line on Debian systems."}
 ]
 
 try:
