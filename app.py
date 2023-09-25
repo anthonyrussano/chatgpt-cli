@@ -2,8 +2,9 @@ import os
 import requests
 import json
 import openai
-from datetime import datetime
 from getpass import getpass
+from datetime import datetime
+import re
 
 VAULT_ADDR = os.environ.get("VAULT_ADDR", "https://10.32.25.213:8200")
 
@@ -34,7 +35,7 @@ def ensure_directory_exists(directory):
 
 def chat_with_openai():
     conversation = [
-        {"role": "system", "content": "Please provide all responses in the form of a devops tutorial and format them as a markdown article."}
+        {"role": "system", "content": "Please provide all responses in the form of a devops tutorial and format them as a markdown article. Start each response with a unique filename suggestion followed by a colon (e.g., 'filename_here.md: Actual response here')."}
     ]
 
     ensure_directory_exists("responses")  # Ensure 'responses' directory exists
@@ -49,10 +50,18 @@ def chat_with_openai():
             print(f"ChatGPT: {model_response}")
             conversation.append({"role": "assistant", "content": model_response})
 
-            # Save the response automatically
-            file_name = generate_timestamped_filename()
+            response_parts = model_response.split(":", 1)
+            if len(response_parts) != 2:
+                print("The model did not provide a filename as expected. Using a default filename.")
+                file_name = generate_timestamped_filename()  # Use the previous timestamp function as a fallback
+                content_to_save = model_response
+            else:
+                suggested_filename, content_to_save = response_parts
+                file_name = f"responses/{suggested_filename.strip()}"
+
+            # Save the response using the derived filename
             with open(file_name, "w") as file:
-                file.write(model_response)
+                file.write(content_to_save.strip())
             print(f"Response saved to {file_name}")
 
     except KeyboardInterrupt:
