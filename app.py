@@ -4,70 +4,54 @@ import json
 import openai
 from getpass import getpass
 
-VAULT_ADDR = "https://10.32.25.213:8200"
+VAULT_ADDR = os.environ.get("VAULT_ADDR", "https://10.32.25.213:8200")
 
-USERNAME = input("Enter your Vault username: ")
-PASSWORD = getpass("Enter your Vault Password: ")
+def authenticate_with_vault(username, password):
+    url = f"{VAULT_ADDR}/v1/auth/userpass/login/{username}"
+    data = {"password": password}
+    response = requests.post(url, json=data, verify=False)  # Retained verify=False as requested
+    try:
+        return response.json()['auth']['client_token']
+    except (KeyError, json.JSONDecodeError):
+        print("Failed to retrieve Vault token")
+        exit(1)
 
-url = f"{VAULT_ADDR}/v1/auth/userpass/login/{USERNAME}"
-data = {"password": PASSWORD}
+def get_openai_api_key(vault_token):
+    secret_path = 'kv/data/openai'
+    headers = {'X-Vault-Token': vault_token}
+    url = f"{VAULT_ADDR}/v1/{secret_path}"
+    response = requests.get(url, headers=headers, verify=False) # Retained verify=False as requested
+    return json.loads(response.text)['data']['data']['api_key']
 
-response = requests.post(url, json=data, verify=False)  # `verify=False` is equivalent to `-k` in curl
+def chat_with_openai():
+    conversation = [
+        {"role": "system", "content": "You are a DevOps assistant with expertise in Debian Linux environments..."}
+    ]
 
-print(f"Login response: {response.text}")
+    try:
+        while True:
+            user_input = input("You: ")
+            conversation.append({"role": "user", "content": user_input})
 
-try:
-    VAULT_TOKEN = response.json()['auth']['client_token']
-except (KeyError, json.JSONDecodeError):
-    print("Failed to retrieve Vault token")
-    exit(1)
+            response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=conversation)
+            model_response = response['choices'][0]['message']['content']
+            print(f"ChatGPT: {model_response}")
+            conversation.append({"role": "assistant", "content": model_response})
 
+            save_response = input("Would you like to save this response to a text file? (yes/no): ").strip().lower()
+            if save_response == "yes":
+                file_name = input("Enter the filename (including path) to save the response: ").strip()
+                with open(file_name, "w") as file:
+                    file.write(model_response)
+                print(f"Response saved to {file_name}")
 
-secret_path = 'kv/data/openai'
+    except KeyboardInterrupt:
+        print("\nConversation ended by user.")
 
-headers = {
-	'X-Vault-Token': VAULT_TOKEN
-}
-
-url = f"{VAULT_ADDR}/v1/{secret_path}"
-
-response = requests.get(url, headers=headers, verify=False)
-
-openai_api_key = json.loads(response.text)['data']['data']['api_key']
-
-openai.api_key = openai_api_key
-
-# Initialize the conversation with a system message
-conversation = [
-    {"role": "system", "content": "You are a DevOps assistant with expertise in Debian Linux environments. Provide clear and actionable commands for sysadmin and DevOps tasks, supplemented with concise explanations when necessary. Ensure responses are tailored for users working directly within the command line on Debian systems."}
-]
-
-try:
-    while True:
-        # Get user input
-        user_input = input("You: ")
-        conversation.append({"role": "user", "content": user_input})
-
-        # Make API call to OpenAI's GPT engine using the conversation history
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=conversation
-        )
-
-        # Extract and display the model's response
-        model_response = response['choices'][0]['message']['content']
-        print(f"ChatGPT: {model_response}")
-
-        # Add the model's response to the conversation history
-        conversation.append({"role": "assistant", "content": model_response})
-
-        # Prompt user to save the response to a text file
-        save_response = input("Would you like to save this response to a text file? (yes/no): ").strip().lower()
-        if save_response == "yes":
-            file_name = input("Enter the filename (including path) to save the response: ").strip()
-            with open(file_name, "w") as file:
-                file.write(model_response)
-            print(f"Response saved to {file_name}")
-
-except KeyboardInterrupt:
-    print("\nConversation ended by user.")
+if __name__ == "__main__":
+    USERNAME = input("Enter your Vault username: ")
+    PASSWORD = getpass("Enter your Vault Password: ")
+    VAULT_TOKEN = authenticate_with_vault(USERNAME, PASSWORD)
+    openai_api_key = get_openai_api_key(VAULT_TOKEN)
+    openai.api_key = openai_api_key
+    chat_with_openai()
