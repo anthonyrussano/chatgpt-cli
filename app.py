@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import openai
+from datetime import datetime
 from getpass import getpass
 
 VAULT_ADDR = os.environ.get("VAULT_ADDR", "https://10.32.25.213:8200")
@@ -23,10 +24,20 @@ def get_openai_api_key(vault_token):
     response = requests.get(url, headers=headers, verify=False) # Retained verify=False as requested
     return json.loads(response.text)['data']['data']['api_key']
 
+def generate_timestamped_filename():
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"responses/response_{timestamp}.md"
+
+def ensure_directory_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
 def chat_with_openai():
     conversation = [
         {"role": "system", "content": "Please provide all responses in the form of a devops tutorial and format them as a markdown article."}
     ]
+
+    ensure_directory_exists("responses")  # Ensure 'responses' directory exists
 
     try:
         while True:
@@ -38,12 +49,11 @@ def chat_with_openai():
             print(f"ChatGPT: {model_response}")
             conversation.append({"role": "assistant", "content": model_response})
 
-            save_response = input("Save response? (yes/no): ").strip().lower()
-            if save_response == "yes":
-                file_name = input("Enter the file path to save the response: ").strip()
-                with open(file_name, "w") as file:
-                    file.write(model_response)
-                print(f"Response saved to {file_name}")
+            # Save the response automatically
+            file_name = generate_timestamped_filename()
+            with open(file_name, "w") as file:
+                file.write(model_response)
+            print(f"Response saved to {file_name}")
 
     except KeyboardInterrupt:
         print("\nConversation ended by user.")
