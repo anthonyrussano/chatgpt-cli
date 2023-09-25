@@ -25,7 +25,7 @@ def get_openai_api_key(vault_token):
 
 def chat_with_openai():
     conversation = [
-        {"role": "system", "content": "You are a DevOps assistant with expertise in Debian Linux environments..."}
+        {"role": "system", "content": "Please provide all responses in the form of a devops tutorial and format them as a markdown article."}
     ]
 
     try:
@@ -38,9 +38,9 @@ def chat_with_openai():
             print(f"ChatGPT: {model_response}")
             conversation.append({"role": "assistant", "content": model_response})
 
-            save_response = input("Would you like to save this response to a text file? (yes/no): ").strip().lower()
+            save_response = input("Save response? (yes/no): ").strip().lower()
             if save_response == "yes":
-                file_name = input("Enter the filename (including path) to save the response: ").strip()
+                file_name = input("Enter the file path to save the response: ").strip()
                 with open(file_name, "w") as file:
                     file.write(model_response)
                 print(f"Response saved to {file_name}")
