@@ -1,0 +1,35 @@
+#!/bin/bash
+
+VAULT_ADDR="https://10.32.25.213:8200"
+read -p "Enter your Vault username: " USERNAME
+read -s -p "Enter your Vault Password: " PASSWORD
+
+LOGIN_RESPONSE=$(curl --request POST -k \
+  --data "{\"password\": \"${PASSWORD}\"}" \
+  "${VAULT_ADDR}/v1/auth/userpass/login/${USERNAME}")
+
+echo "Login response: $LOGIN_RESPONSE"
+
+VAULT_TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.auth.client_token')
+
+echo "$VAULT_TOKEN"
+
+if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" == "null" ]; then
+  echo "Failed to retrieve Vault token"
+  exit 1
+fi
+
+echo "Vault token has been retrieved."
+
+SECRET_PATH="kv/data/openai"
+
+RESPONSE=$(curl -k -s \
+  -H "X-Vault-Token: $VAULT_TOKEN" \
+  "$VAULT_ADDR/v1/$SECRET_PATH")
+
+# Parse the response to extract the API key
+API_KEY=$(echo $RESPONSE | jq -r '.data.data.api_key')
+
+export OPENAI_API_KEY="$API_KEY"
+
+echo "OpenAI API Key has been exported."
