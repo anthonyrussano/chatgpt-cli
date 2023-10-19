@@ -6,12 +6,12 @@ from getpass import getpass
 from datetime import datetime
 import re
 
-VAULT_ADDR = os.environ.get("VAULT_ADDR", "https://10.32.25.213:8200")
+VAULT_ADDR = os.environ.get("VAULT_ADDR", "http://10.32.25.213:8200")
 
 def authenticate_with_vault(username, password):
     url = f"{VAULT_ADDR}/v1/auth/userpass/login/{username}"
     data = {"password": password}
-    response = requests.post(url, json=data, verify=False)  # Retained verify=False as requested
+    response = requests.post(url, json=data)
     try:
         return response.json()['auth']['client_token']
     except (KeyError, json.JSONDecodeError):
@@ -22,7 +22,7 @@ def get_openai_api_key(vault_token):
     secret_path = 'kv/data/openai'
     headers = {'X-Vault-Token': vault_token}
     url = f"{VAULT_ADDR}/v1/{secret_path}"
-    response = requests.get(url, headers=headers, verify=False) # Retained verify=False as requested
+    response = requests.get(url, headers=headers)
     return json.loads(response.text)['data']['data']['api_key']
 
 def generate_timestamped_filename():
@@ -38,44 +38,36 @@ def chat_with_openai():
         {
             "role": "system",
             "content": (
-                "I'm looking for comprehensive DevOps tutorials in markdown format. "
-                "Each response should be structured as follows:\n\n"
-                "- Title\n"
-                "- Introduction\n"
-                "- Steps or Sections\n"
-                "- Conclusion\n\n"
-                "Please start each response with a unique filename suggestion followed by a colon "
-                "(e.g., 'filename_here.md: # Title\n\n...'). Make sure the content is clear, concise, and informative."
+                ""
             )
         }
     ]
 
 
-    ensure_directory_exists("responses")  # Ensure 'responses' directory exists
+    ensure_directory_exists("responses")
 
     try:
         while True:
             user_input = input("You: ")
             conversation.append({"role": "user", "content": user_input})
 
-            response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=conversation)
+            response = openai.ChatCompletion.create(model="gpt-4", messages=conversation)
             model_response = response['choices'][0]['message']['content']
+            print(" ")
             print(f"ChatGPT: {model_response}")
+            print(" ")
             conversation.append({"role": "assistant", "content": model_response})
 
             response_parts = model_response.split(":", 1)
             if len(response_parts) != 2:
-                print("The model did not provide a filename as expected. Using a default filename.")
-                file_name = generate_timestamped_filename()  # Use the previous timestamp function as a fallback
+                file_name = generate_timestamped_filename()
                 content_to_save = model_response
             else:
                 suggested_filename, content_to_save = response_parts
                 file_name = f"responses/{suggested_filename.strip()}"
 
-            # Save the response using the derived filename
             with open(file_name, "w") as file:
                 file.write(content_to_save.strip())
-            print(f"Response saved to {file_name}")
 
     except KeyboardInterrupt:
         print("\nConversation ended by user.")
