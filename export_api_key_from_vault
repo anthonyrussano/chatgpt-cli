@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VAULT_ADDR="https://10.32.25.213:8200"
+VAULT_ADDR="http://10.32.25.213:8200"
 read -p "Enter your Vault username: " USERNAME
 read -s -p "Enter your Vault Password: " PASSWORD
 
